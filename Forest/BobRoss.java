@@ -5,7 +5,9 @@ import javax.swing.JFrame;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
+import java.awt.image.DataBufferInt;
+import java.awt.image.Raster;
+import java.awt.image.WritableRaster;
 import java.awt.event.KeyEvent;
 
 public class BobRoss extends JFrame{
@@ -28,7 +30,7 @@ public class BobRoss extends JFrame{
       g = this.getGraphics();
       kl = new keyListener(this);
    }
-   Color[] colors = {new Color(99, 48, 0), Color.GREEN, Color.ORANGE, Color.CYAN, Color.LIGHT_GRAY, Color.DARK_GRAY};
+   Color[] colors = {new Color(99, 48, 0), new Color(2, 110, 0), Color.ORANGE, Color.CYAN, Color.LIGHT_GRAY, Color.DARK_GRAY, Color.GREEN};
    
    void drawLines(Graphics bg, String[] lines, int x, int y){
       bg.setColor(Color.BLACK);
@@ -36,6 +38,9 @@ public class BobRoss extends JFrame{
          bg.drawString(lines[i],x,y+i*10);
       }
    }
+   int[] pixels = new int[800*800];
+   BufferedImage bi = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
+   BufferedImage bi2 = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
    
    @Override
    public void paint(Graphics g){
@@ -68,11 +73,13 @@ public class BobRoss extends JFrame{
       if(kl.keyDown(KeyEvent.VK_3)){
          fancyGraphics = 2;
       }
-      BufferedImage bi = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
+
       Graphics bg = bi.getGraphics();
       bg.setColor(Color.lightGray);
       bg.fillRect(0,0,800,800);
       bg.setColor(Color.BLACK);
+      int[] bandMasks = {0xFF0000, 0x00FF00, 0x0000FF, 0xFF000000};
+
       for(int y = 0; y < forest.length; y++){
          for(int x = 0; x < forest[y].length; x++){
             bg.setColor(colors[forest[y][x]]);
@@ -81,16 +88,15 @@ public class BobRoss extends JFrame{
       }
       drawLines(bg, infoToDraw, (int)((double)(forest.length+5-xoffset*forest.length/100)*(720.0/forest.length)/zoom)+440,(int)((double)(5+yoffset*forest.length/100)*(720.0/forest.length)/zoom)+330);
       if(fancyGraphics != 0){
-         BufferedImage bi2 = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
-         Graphics bg2 = bi2.getGraphics();
          for (int x = 0; x < 800; x++) {
             for (int y = 0; y < 800; y++) {
                double distToCenter = Math.sqrt((x-400)*(x-400)+(y-400)*(y-400));
                double z = 2-distToCenter/566*zoom;
                int x2 = (int)((x-400)/z+400);
                int y2 = (int)((y-400)/z+400);
+               int color;
                if(x2<0||x2>=800||y2<0||y2>=800){
-                  bg2.setColor(Color.GRAY);
+                  color = Color.GRAY.getRGB();
                }else if(fancyGraphics == 2){
                   double crt = (Math.sin(y/10.0 + System.nanoTime()/200000000.0)/2.0+0.5);
                   crt *= (Math.sin(x/2.0 + System.nanoTime()/10000000.0)/2.0+0.5);
@@ -102,14 +108,19 @@ public class BobRoss extends JFrame{
                   int r2 = (int) (r1 + (l-r1) * crt);
                   int g2 = (int) (g1 + (l-g1) * crt);
                   int b2 = (int) (b1 + (l-b1) * crt);
-                  bg2.setColor(new Color(r2,g2,b2));
+                  color = (r2<<16) + (g2<<8) + b2;
                }else{
-                  bg2.setColor(new Color(bi.getRGB(x2, y2)));
+                  color = bi.getRGB(x2, y2);
                   //bg2.setColor(new Color((int)(x2*255.0/800.0),(int)(y2*255.0/800.0),0));
                }
-               bg2.drawLine(x, y, x, y);
+               pixels[y*800 + x] = color;
             }
          }
+
+         DataBufferInt buffer = new DataBufferInt(pixels, pixels.length);
+
+         WritableRaster raster = Raster.createPackedRaster(buffer, 800, 800, 800, bandMasks, null);
+         bi2.setData(raster);
          g.drawImage(bi2,0,0,null);
       }else{
          g.drawImage(bi,0,0,null);
