@@ -57,7 +57,7 @@ public class ForestManager{
       )
    };
    BobRoss br;
-   public ForestManager(int size, boolean fancyGraphics){
+   public ForestManager(int size, int fancyGraphics){
       this.size = size;
       forest = new int[size][];
       nextForest = new int[size][];
@@ -131,7 +131,7 @@ public class ForestManager{
    }
    
    public static void main(String[] args){
-      ForestManager fm = new ForestManager(300,true);
+      ForestManager fm = new ForestManager(700,1);
       while(true){
          long t = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
          fm.update();

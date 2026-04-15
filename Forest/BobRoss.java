@@ -5,7 +5,7 @@ import javax.swing.JFrame;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-
+import java.awt.image.ColorModel;
 import java.awt.event.KeyEvent;
 
 public class BobRoss extends JFrame{
@@ -16,8 +16,8 @@ public class BobRoss extends JFrame{
    double xoffset = 0;
    double yoffset = 0;
    double zoom = 1;
-   boolean fancyGraphics = false;
-   public BobRoss(int[][] forest, boolean fancyGraphics){
+   int fancyGraphics = 0;
+   public BobRoss(int[][] forest, int fancyGraphics){
       this.forest = forest;
       this.setTitle("painting");
       this.setSize(800, 800);
@@ -59,9 +59,18 @@ public class BobRoss extends JFrame{
       if(kl.keyDown(KeyEvent.VK_Q)){
          zoom*=0.99;
       }
+      if(kl.keyDown(KeyEvent.VK_1)){
+         fancyGraphics = 0;
+      }
+      if(kl.keyDown(KeyEvent.VK_2)){
+         fancyGraphics = 1;
+      }
+      if(kl.keyDown(KeyEvent.VK_3)){
+         fancyGraphics = 2;
+      }
       BufferedImage bi = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
       Graphics bg = bi.getGraphics();
-      bg.setColor(Color.WHITE);
+      bg.setColor(Color.lightGray);
       bg.fillRect(0,0,800,800);
       bg.setColor(Color.BLACK);
       for(int y = 0; y < forest.length; y++){
@@ -71,16 +80,33 @@ public class BobRoss extends JFrame{
          }
       }
       drawLines(bg, infoToDraw, (int)((double)(forest.length+5-xoffset*forest.length/100)*(720.0/forest.length)/zoom)+440,(int)((double)(5+yoffset*forest.length/100)*(720.0/forest.length)/zoom)+330);
-      if(fancyGraphics){
+      if(fancyGraphics != 0){
          BufferedImage bi2 = new BufferedImage(800, 800, BufferedImage.TYPE_INT_ARGB);
          Graphics bg2 = bi2.getGraphics();
          for (int x = 0; x < 800; x++) {
             for (int y = 0; y < 800; y++) {
                double distToCenter = Math.sqrt((x-400)*(x-400)+(y-400)*(y-400));
                double z = 2-distToCenter/566*zoom;
-               int x2 = Math.min(Math.max((int)((x-400)/z+400),0),799);
-               int y2 = Math.min(Math.max((int)((y-400)/z+400),0),799);
-               bg2.setColor(new Color(bi.getRGB(x2, y2)));
+               int x2 = (int)((x-400)/z+400);
+               int y2 = (int)((y-400)/z+400);
+               if(x2<0||x2>=800||y2<0||y2>=800){
+                  bg2.setColor(Color.GRAY);
+               }else if(fancyGraphics == 2){
+                  double crt = (Math.sin(y/10.0 + System.nanoTime()/200000000.0)/2.0+0.5);
+                  crt *= (Math.sin(x/2.0 + System.nanoTime()/10000000.0)/2.0+0.5);
+                  int rgb = bi.getRGB(x2, y2);
+                  int r1 = (rgb >> 16) & 0xFF;
+                  int g1 = (rgb >> 8) & 0xFF;
+                  int b1 = (rgb >> 0) & 0xFF;
+                  double l = 0.2126 * r1 + 0.7152 * g1 + 0.0722 * b1;
+                  int r2 = (int) (r1 + (l-r1) * crt);
+                  int g2 = (int) (g1 + (l-g1) * crt);
+                  int b2 = (int) (b1 + (l-b1) * crt);
+                  bg2.setColor(new Color(r2,g2,b2));
+               }else{
+                  bg2.setColor(new Color(bi.getRGB(x2, y2)));
+                  //bg2.setColor(new Color((int)(x2*255.0/800.0),(int)(y2*255.0/800.0),0));
+               }
                bg2.drawLine(x, y, x, y);
             }
          }
